@@ -1,75 +1,80 @@
 import 'package:flutter/material.dart';
-import 'package:wisataku/detail_page.dart';
 import 'package:wisataku/destination_card.dart';
+import 'package:wisataku/data/model/wisataku.dart';
 
-class HomePage extends StatelessWidget {
-  // Data dummy untuk kategori dan tempat populer
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final TextEditingController _searchController = TextEditingController();
+
   final List<Map<String, String>> categories = [
-    {'name': 'Montain', 'icon': '⛰️'},
-    {'name': 'Beach', 'icon': '🏖️'},
-    {'name': 'Urban', 'icon': '🏙️'},
-    // Tambahkan lebih banyak
+    {'name': 'All', 'icon': '🌍'},
+    {'name': 'Budaya', 'icon': '🏯'},
+    {'name': 'Alam', 'icon': '⛰️'},
+    {'name': 'Pantai', 'icon': '🏖️'},
   ];
 
-  final List<Map<String, dynamic>> popularDestinations = [
-    {
-      'name': 'Bromo Tengger Semeru',
-      'location': 'Probolingga, East Java',
-      'price': 12, // dalam K
-      'distance': '14km',
-      'image': 'assets/bromo.jpg'
-    },
-    {
-      'name': 'Gunung Andong Magelang',
-      'location': 'Magelang, East Java',
-      'price': 9,
-      'distance': '14km',
-      'image': 'assets/andong.jpg'
-    },
-  ];
+  List<Wisataku> filteredDestinations = WisatakuList;
+  String selectedCategory = 'All';
+
+  void _filterDestinations(String query) {
+    setState(() {
+      filteredDestinations = WisatakuList.where((destination) {
+        final name = destination.place_name.toLowerCase();
+        final category = destination.category;
+        final matchesSearch = name.contains(query.toLowerCase());
+        final matchesCategory =
+            selectedCategory == 'All' ? true : category == selectedCategory;
+        return matchesSearch && matchesCategory;
+      }).toList();
+    });
+  }
+
+  void _selectCategory(String category) {
+    setState(() {
+      selectedCategory = category;
+      _filterDestinations(_searchController.text);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Hilangkan tombol kembali
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        automaticallyImplyLeading: false,
+        title: const Row(
           children: [
-            // Text('9:41', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Waktu
-            Row(
+            CircleAvatar(
+              radius: 16,
+              backgroundImage: AssetImage('assets/profile.jpg'),
+            ),
+            SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 12,
-                  backgroundImage: AssetImage('assets/profile.jpg'), // Ganti dengan path gambar profil
+                Text(
+                  'Annie January',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Annie January', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Text('Basic account', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  ],
-                ),
+                Text('Basic account',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ],
         ),
-        actions: const [
-          Icon(Icons.wifi, size: 18),
-          SizedBox(width: 4),
-          Icon(Icons.battery_full, size: 22),
-          SizedBox(width: 16),
-        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const SizedBox(height: 16),
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
@@ -81,65 +86,73 @@ class HomePage extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Row(
-                children: const [
-                  Icon(Icons.search, color: Colors.grey, size: 24),
-                  SizedBox(width: 8),
-                  Text(
-                    "Search destination...",
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
+              child: TextField(
+                controller: _searchController,
+                onChanged: _filterDestinations,
+                decoration: const InputDecoration(
+                  icon: Icon(Icons.search, color: Colors.grey),
+                  hintText: "Search destination...",
+                  border: InputBorder.none,
+                ),
               ),
             ),
-            const SizedBox(height: 24),
-            // Kategori
+
+            const SizedBox(height: 12),
+
             SizedBox(
               height: 40,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: categories.length,
                 itemBuilder: (context, index) {
+                  final isSelected =
+                      selectedCategory == categories[index]['name'];
                   return Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: Chip(
-                      label: Text('${categories[index]['icon']} ${categories[index]['name']}'),
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ChoiceChip(
+                      label: Text(
+                        '${categories[index]['icon']} ${categories[index]['name']}',
+                      ),
+                      selected: isSelected,
+                      selectedColor: Colors.green.shade400,
                       backgroundColor: Colors.grey[200],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      onSelected: (_) =>
+                          _selectCategory(categories[index]['name']!),
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 24),
 
-            // Popular Near You Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Popular near you', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                TextButton(onPressed: () {}, child: const Text('See more >', style: TextStyle(color: Colors.green))),
-              ],
+            const SizedBox(height: 12),
+
+            Expanded(
+              child: filteredDestinations.isEmpty
+                  ? const Center(
+                      child: Text(
+                        "No destinations found",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: filteredDestinations.length,
+                      itemBuilder: (context, index) {
+                        final destination = filteredDestinations[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: DestinationCard(destination: destination),
+                        );
+                      },
+                    ),
             ),
-            const SizedBox(height: 16),
-
-            // Daftar Destinasi Populer
-            ...popularDestinations.map((destination) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: DestinationCard(destination: destination),
-              );
-            }).toList(),
           ],
         ),
       ),
     );
   }
 }
-
-// Widget untuk setiap kartu destinasi

@@ -1,76 +1,100 @@
 import 'package:flutter/material.dart';
+import 'package:wisataku/detail_screen.dart';
+import 'package:wisataku/data/model/wisataku.dart'; 
 
+class DestinationCard extends StatelessWidget {
+  final Wisataku destination;
 
-class DestinationCard extends StatefulWidget {
-  final Map<String, dynamic> destination;
+  const DestinationCard({super.key, required this.destination});
 
-  const DestinationCard({required this.destination});
-
-  @override
-  State<DestinationCard> createState() => _DestinationCardState();
-}
-
-class _DestinationCardState extends State<DestinationCard> {
   @override
   Widget build(BuildContext context) {
+    final String imagePath = destination.category.isNotEmpty
+        ? "https://source.unsplash.com/400x300/?${destination.category}"
+        : "https://source.unsplash.com/400x300/?travel";
+
     return GestureDetector(
       onTap: () {
-        // Navigasi ke Detail Screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DetailPage(
+              destination: {
+                'name': destination.place_name,
+                'location': destination.city,
+                'price': destination.price,
+                'distance': '',
+                'category': destination.category,
+                'image': imagePath,
+                'lat': destination.lat,
+                'lng': destination.long,
+                'description': destination.description,
+              },
+            ),
+          ),
+        );
       },
       child: Container(
-        height: 200, // Tinggi kartu
         decoration: BoxDecoration(
-          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: const Offset(0, 3),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                child: Image.asset(
-                  widget.destination['image'],
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Image.network(
+                imagePath,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.broken_image, size: 100, color: Colors.grey),
               ),
             ),
+
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    destination.place_name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    destination.city,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        widget.destination['name'],
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        destination.price == 0
+                            ? "Free"
+                            : "\$${destination.price} / person",
+                        style: const TextStyle(color: Colors.green),
                       ),
-                      Text(
-                        '\$${widget.destination['price']}K/Trip',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 16),
+                          const SizedBox(width: 4),
+                          Text(destination.rating.toString()),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(widget.destination['location'], style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                      const SizedBox(width: 16),
-                      const Icon(Icons.directions_walk, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(widget.destination['distance'], style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                 ],

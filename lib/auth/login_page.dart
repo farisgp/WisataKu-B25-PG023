@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wisataku/main_screen.dart';
+import 'package:wisataku/auth/signup_page.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -11,23 +12,20 @@ class LoginPage extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView( 
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 50),
-
-              // Logo / Illustration
               Center(
-                child: Image.network(
-                  "https://source.unsplash.com/200x200/?travel,logo",
+                child: Image.asset(
+                  "images/logo.png",
+                  width: 120,
                   height: 120,
                 ),
               ),
-              const SizedBox(height: 40),
-
-              // Title
+              const SizedBox(height: 10),
               const Text(
                 "Welcome Back 👋",
                 textAlign: TextAlign.center,
@@ -47,7 +45,6 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 40),
 
-              // Email
               TextField(
                 controller: emailController,
                 decoration: InputDecoration(
@@ -60,7 +57,6 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Password
               TextField(
                 controller: passwordController,
                 obscureText: true,
@@ -74,7 +70,6 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              // Forgot Password
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -84,7 +79,6 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Login Button
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -108,7 +102,6 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Divider
               Row(
                 children: const [
                   Expanded(child: Divider()),
@@ -121,7 +114,6 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Social Login Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -142,16 +134,18 @@ class LoginPage extends StatelessWidget {
                   ),
                 ],
               ),
-              const Spacer(),
+              const SizedBox(height: 20),
 
-              // Register Link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text("Don’t have an account? "),
                   TextButton(
                     onPressed: () {
-                      // TODO: Navigate to Register Page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SignUpPage()),
+                      );
                     },
                     child: const Text("Sign Up"),
                   ),

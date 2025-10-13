@@ -5,7 +5,6 @@ class BookmarkScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dummy data bookmarks
     final List<Map<String, String>> bookmarks = [
       {
         "title": "Mount Bromo",
@@ -51,7 +50,6 @@ class BookmarkScreen extends StatelessWidget {
                   elevation: 4,
                   child: Row(
                     children: [
-                      // Thumbnail
                       ClipRRect(
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(16),

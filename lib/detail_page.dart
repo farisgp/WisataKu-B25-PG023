@@ -8,7 +8,6 @@ class DetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // contoh koordinat Bromo
     const double lat = -7.9425;
     const double lng = 112.9530;
 
@@ -69,7 +68,6 @@ class DetailPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
 
-                    // ===== Map Section (Card) =====
                     const Text(
                       "Location",
                       style:
@@ -83,7 +81,6 @@ class DetailPage extends StatelessWidget {
                       clipBehavior: Clip.antiAlias,
                       child: Column(
                         children: [
-                          // Gambar dari assets (selalu tampil)
                           Image.asset(
                             "assets/map_demo.png",
                             height: 200,
@@ -116,7 +113,6 @@ class DetailPage extends StatelessWidget {
               ),
             ],
           ),
-          // Booking Button
           Positioned(
             bottom: 20,
             left: 16,
@@ -133,7 +129,6 @@ class DetailPage extends StatelessWidget {
               child: const Text("Booking"),
             ),
           ),
-          // Back Button
           SafeArea(
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),

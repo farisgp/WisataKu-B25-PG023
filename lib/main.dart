@@ -4,9 +4,7 @@ import 'package:wisataku/main_screen.dart';
 import 'package:wisataku/onboarding_page.dart';
 import 'package:wisataku/provider/main/index_nav_provider.dart';
 import 'package:wisataku/static/navigation_route.dart';
-import 'package:wisataku/login_page.dart';
-// import 'package:wisataku/home_page.dart'; // nanti bisa ditambahkan
-// import 'package:wisataku/detail_page.dart'; // nanti bisa ditambahkan
+import 'package:wisataku/auth/login_page.dart';
 
 void main() {
   runApp(

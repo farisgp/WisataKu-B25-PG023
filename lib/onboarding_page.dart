@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wisataku/login_page.dart';
+import 'package:wisataku/auth/login_page.dart';
 import 'package:wisataku/static/navigation_route.dart';
 
 class OnboardingPage extends StatelessWidget {
@@ -10,14 +10,12 @@ class OnboardingPage extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // Background image
           SizedBox.expand(
             child: Image.network(
-              "https://picsum.photos/600/900", // contoh
+              "https://picsum.photos/600/900", 
               fit: BoxFit.cover,
             ),
           ),
-          // Gradient overlay
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -27,7 +25,6 @@ class OnboardingPage extends StatelessWidget {
               ),
             ),
           ),
-          // Content
           Positioned(
             bottom: 40,
             left: 20,
