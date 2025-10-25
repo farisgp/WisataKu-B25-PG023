@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:wisataku/detail_screen.dart';
 import 'package:wisataku/data/model/wisataku.dart'; 
 
@@ -26,9 +27,11 @@ class DestinationCard extends StatelessWidget {
                 'distance': '',
                 'category': destination.category,
                 'image': imagePath,
-                'lat': destination.lat,
-                'lng': destination.long,
+                // 'lat': destination.lat,
+                // 'lng': destination.long,
+
                 'description': destination.description,
+                "latlng": LatLng(destination.lat, destination.long),
               },
             ),
           ),
