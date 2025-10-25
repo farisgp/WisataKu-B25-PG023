@@ -11,26 +11,42 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _minPriceController = TextEditingController();
+  final TextEditingController _maxPriceController = TextEditingController();
 
   final List<Map<String, String>> categories = [
     {'name': 'All', 'icon': '🌍'},
     {'name': 'Budaya', 'icon': '🏯'},
-    {'name': 'Alam', 'icon': '⛰️'},
-    {'name': 'Pantai', 'icon': '🏖️'},
+    {'name': 'Taman Hiburan', 'icon': '🎢'},
+    {'name': 'Cagar Alam', 'icon': '🌲'},
+    {'name': 'Bahari', 'icon': '🏖️'},
+    {'name': 'Pusat Perbelanjaan', 'icon': '🛍️'},
+    {'name': 'Tempat Ibadah', 'icon': '⛩️'},
   ];
 
   List<Wisataku> filteredDestinations = WisatakuList;
   String selectedCategory = 'All';
 
   void _filterDestinations(String query) {
+    double? minPrice =
+        _minPriceController.text.isEmpty ? null : double.tryParse(_minPriceController.text);
+    double? maxPrice =
+        _maxPriceController.text.isEmpty ? null : double.tryParse(_maxPriceController.text);
+
     setState(() {
       filteredDestinations = WisatakuList.where((destination) {
         final name = destination.place_name.toLowerCase();
+        final city = destination.city.toLowerCase();
         final category = destination.category;
-        final matchesSearch = name.contains(query.toLowerCase());
+        final price = destination.price;
+
+        final matchesSearch = city.contains(query.toLowerCase());
         final matchesCategory =
             selectedCategory == 'All' ? true : category == selectedCategory;
-        return matchesSearch && matchesCategory;
+        final matchesPrice = (minPrice == null || price >= minPrice) &&
+            (maxPrice == null || price <= maxPrice);
+
+        return matchesSearch && matchesCategory && matchesPrice;
       }).toList();
     });
   }
@@ -45,8 +61,11 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        elevation: 0,
+        backgroundColor: Colors.white,
         title: const Row(
           children: [
             CircleAvatar(
@@ -59,10 +78,12 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Text(
                   'Annie January',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
                 ),
-                Text('Basic account',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  'Basic account',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ],
@@ -74,7 +95,7 @@ class _HomePageState extends State<HomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
@@ -86,27 +107,76 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: _filterDestinations,
-                decoration: const InputDecoration(
-                  icon: Icon(Icons.search, color: Colors.grey),
-                  hintText: "Search destination...",
-                  border: InputBorder.none,
-                ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.search, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: _filterDestinations,
+                          decoration: const InputDecoration(
+                            hintText: "Cari kota wisata...",
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 20, color: Colors.grey),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _minPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: "Harga Min",
+                            labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          ),
+                          onChanged: (_) => _filterDestinations(_searchController.text),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _maxPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: "Harga Max",
+                            labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          ),
+                          onChanged: (_) => _filterDestinations(_searchController.text),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             SizedBox(
-              height: 40,
+              height: 42,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: categories.length,
                 itemBuilder: (context, index) {
-                  final isSelected =
-                      selectedCategory == categories[index]['name'];
+                  final isSelected = selectedCategory == categories[index]['name'];
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: ChoiceChip(
@@ -116,12 +186,10 @@ class _HomePageState extends State<HomePage> {
                       selected: isSelected,
                       selectedColor: Colors.green.shade400,
                       backgroundColor: Colors.grey[200],
-                      onSelected: (_) =>
-                          _selectCategory(categories[index]['name']!),
+                      onSelected: (_) => _selectCategory(categories[index]['name']!),
                       labelStyle: TextStyle(
                         color: isSelected ? Colors.white : Colors.black,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   );
@@ -135,7 +203,7 @@ class _HomePageState extends State<HomePage> {
               child: filteredDestinations.isEmpty
                   ? const Center(
                       child: Text(
-                        "No destinations found",
+                        "Tidak ada destinasi ditemukan",
                         style: TextStyle(color: Colors.grey),
                       ),
                     )
