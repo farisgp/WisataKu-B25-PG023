@@ -1,26 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class DetailPage extends StatelessWidget {
+class DetailPage extends StatefulWidget {
   final Map<String, dynamic> destination;
-
   const DetailPage({super.key, required this.destination});
 
   @override
-  Widget build(BuildContext context) {
-    final String imagePath = destination['image'];
-    final String name = destination['name'];
-    final String location = destination['location'];
-    final int price = destination['price'];
-    final String distance = destination['distance'];
-    final String description = destination['description'] ??
-        "Experience the beauty of $name, located in $location. "
-        "This destination offers breathtaking views, great atmosphere, and unforgettable experiences.";
+  State<DetailPage> createState() => _DetailPageState();
+}
 
-    final LatLng mapLocation =
-        destination['latlng'] ?? _getDefaultLatLng(name);
+class _DetailPageState extends State<DetailPage> {
+  List<String> recommendedNames = [];
+  bool loadingRecommendations = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecommendations();
+  }
+
+  Future<void> _loadRecommendations() async {
+    final destinationName = widget.destination['name'];
+    try {
+      final url = Uri.parse('http://localhost:5000/recommend?name=$destinationName');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          recommendedNames = List<String>.from(data['recommendations']);
+          loadingRecommendations = false;
+        });
+      } else {
+        print("❌ Gagal memuat rekomendasi: ${response.body}");
+        setState(() => loadingRecommendations = false);
+      }
+    } catch (e) {
+      print("⚠️ Error saat memuat rekomendasi: $e");
+      setState(() => loadingRecommendations = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final destination = widget.destination;
+    final String name = destination["name"] ?? "Unknown";
+    final String description = destination["description"] ?? "No description available.";
+    final String category = destination["category"] ?? "General";
+    final String location = destination["location"] ?? "Unknown City";
+    final double price = destination["price"]?.toDouble() ?? 0.0;
+    final double rating = destination["rating"]?.toDouble() ?? 0.0;
+    final LatLng mapLocation = destination['latlng'] ?? _getDefaultLatLng(name);
+    final String image =
+        destination["image"] ?? "https://source.unsplash.com/400x300/?$category";
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -29,16 +64,12 @@ class DetailPage extends StatelessWidget {
           Hero(
             tag: name,
             child: Image.network(
-              imagePath,
+              image,
               height: MediaQuery.of(context).size.height * 0.45,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Center(
-                child: Icon(Icons.broken_image, size: 120, color: Colors.grey),
-              ),
             ),
           ),
-
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(12.0),
@@ -51,7 +82,6 @@ class DetailPage extends StatelessWidget {
               ),
             ),
           ),
-
           DraggableScrollableSheet(
             initialChildSize: 0.55,
             minChildSize: 0.55,
@@ -62,34 +92,15 @@ class DetailPage extends StatelessWidget {
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: Offset(0, -3),
-                    ),
-                  ],
                 ),
                 child: SingleChildScrollView(
                   controller: scrollController,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const Icon(Icons.favorite_border, color: Colors.grey),
-                        ],
-                      ),
+                      Text(name,
+                          style: const TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -99,30 +110,26 @@ class DetailPage extends StatelessWidget {
                           Text(location,
                               style: const TextStyle(color: Colors.grey)),
                           const Spacer(),
-                          Text(distance,
-                              style: const TextStyle(color: Colors.grey)),
+                          Row(
+                            children: [
+                              const Icon(Icons.star,
+                                  color: Colors.amber, size: 18),
+                              Text(rating.toStringAsFixed(1)),
+                            ],
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
-
-                      const Text(
-                        "Description",
-                        style:
-                            TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
+                      const Text("Deskripsi",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      Text(
-                        description,
-                        style: const TextStyle(
-                            fontSize: 14, color: Colors.black87, height: 1.5),
-                      ),
+                      Text(description,
+                          style: const TextStyle(fontSize: 14, height: 1.5)),
                       const SizedBox(height: 24),
-
-                      const Text(
-                        "Map Location",
-                        style:
-                            TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
+                      const Text("Lokasi di Peta",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
@@ -133,8 +140,6 @@ class DetailPage extends StatelessWidget {
                             options: MapOptions(
                               initialCenter: mapLocation,
                               initialZoom: 13,
-                              onTap: (_, __) => _openMap(context, mapLocation.latitude, mapLocation.longitude),
-
                             ),
                             children: [
                               TileLayer(
@@ -148,11 +153,8 @@ class DetailPage extends StatelessWidget {
                                     point: mapLocation,
                                     width: 80,
                                     height: 80,
-                                    child: const Icon(
-                                      Icons.location_on,
-                                      color: Colors.red,
-                                      size: 40,
-                                    ),
+                                    child: const Icon(Icons.location_on,
+                                        color: Colors.red, size: 40),
                                   ),
                                 ],
                               ),
@@ -160,24 +162,20 @@ class DetailPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 30),
-
+                      const SizedBox(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text("Price",
+                              const Text("Harga",
                                   style: TextStyle(color: Colors.grey)),
-                              Text(
-                                "\$$price / person",
-                                style: const TextStyle(
-                                  color: Colors.green,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              Text("Rp${price.toStringAsFixed(0)} / orang",
+                                  style: const TextStyle(
+                                      color: Colors.green,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold)),
                             ],
                           ),
                           ElevatedButton(
@@ -185,28 +183,37 @@ class DetailPage extends StatelessWidget {
                               backgroundColor: Colors.green,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 40, vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
                             ),
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content:
-                                      Text("Booking successful for $name!"),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              "Book Now",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.white),
-                            ),
+                            onPressed: () {},
+                            child: const Text("Pesan Sekarang",
+                                style: TextStyle(color: Colors.white)),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 24),
+                      const Text("Wisata Serupa",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+
+                      // === Bagian rekomendasi dari Flask ===
+                      if (loadingRecommendations)
+                        const Center(child: CircularProgressIndicator())
+                      else if (recommendedNames.isEmpty)
+                        const Text("Tidak ada rekomendasi ditemukan.")
+                      else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: recommendedNames
+                              .map(
+                                (name) => Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 6),
+                                  child: Text("• $name",
+                                      style: const TextStyle(fontSize: 16)),
+                                ),
+                              )
+                              .toList(),
+                        ),
                     ],
                   ),
                 ),
@@ -227,68 +234,7 @@ class DetailPage extends StatelessWidget {
       case 'raja ampat':
         return LatLng(-0.2346, 130.5079);
       default:
-        return LatLng(-6.2000, 106.8166); 
+        return LatLng(-6.2000, 106.8166);
     }
   }
-
-  Future<void> _openMap(BuildContext context, double lat, double lng) async {
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: const Text(
-          "Apakah Anda ingin membuka lokasi ini di Google Maps?",
-          style: TextStyle(fontSize: 15),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Batal"),
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () async {
-              Navigator.pop(context);
-
-              final Uri url = Uri.parse(
-                  'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
-
-              try {
-                final bool launched = await launchUrl(
-                  url,
-                  mode: LaunchMode.externalApplication,
-                );
-
-                if (!launched) {
-                  debugPrint('❌ Tidak dapat membuka Google Maps.');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tidak dapat membuka Google Maps'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              } catch (e) {
-                debugPrint('⚠️ Error membuka peta: $e');
-              }
-            },
-            icon: const Icon(Icons.map, color: Colors.white),
-            label: const Text(
-              "Buka di Google Maps",
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-
 }
