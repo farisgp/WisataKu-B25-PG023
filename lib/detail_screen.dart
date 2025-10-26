@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:wisataku/recommendation_card.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -26,10 +27,8 @@ class _DetailPageState extends State<DetailPage> {
     final jsonData = jsonEncode(destination);
 
     if (isBookmarked) {
-      // Hapus bookmark
       saved.removeWhere((item) => jsonDecode(item)['name'] == destination['name']);
     } else {
-      // Tambahkan bookmark
       saved.add(jsonData);
     }
 
@@ -189,7 +188,6 @@ class _DetailPageState extends State<DetailPage> {
             ),
           ),
 
-          // ✅ Sisanya tetap sama
           DraggableScrollableSheet(
             initialChildSize: 0.55,
             minChildSize: 0.55,
@@ -241,33 +239,89 @@ class _DetailPageState extends State<DetailPage> {
                       const SizedBox(height: 8),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: SizedBox(
-                          height: 250,
-                          width: double.infinity,
-                          child: FlutterMap(
-                            options: MapOptions(
-                              initialCenter: mapLocation,
-                              initialZoom: 13,
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate:
-                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'com.example.wisataku',
-                              ),
-                              MarkerLayer(
-                                markers: [
-                                  Marker(
-                                    point: mapLocation,
-                                    width: 80,
-                                    height: 80,
-                                    child: const Icon(Icons.location_on,
-                                        color: Colors.red, size: 40),
+                        child: Stack(
+                          children: [
+                            SizedBox(
+                              height: 250,
+                              width: double.infinity,
+                              child: FlutterMap(
+                                options: MapOptions(
+                                  initialCenter: mapLocation,
+                                  initialZoom: 13,
+                                  interactionOptions: const InteractionOptions(
+                                    flags: InteractiveFlag.none, 
+                                  ),
+                                ),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName: 'com.example.wisataku',
+                                  ),
+                                  MarkerLayer(
+                                    markers: [
+                                      Marker(
+                                        point: mapLocation,
+                                        width: 80,
+                                        height: 80,
+                                        child: const Icon(Icons.location_on,
+                                            color: Colors.red, size: 40),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+
+                            Positioned.fill(
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () async {
+                                    final Uri googleMapsUri = Uri.parse(
+                                      'https://www.google.com/maps/search/?api=1&query=${mapLocation.latitude},${mapLocation.longitude}',
+                                    );
+
+                                    final bool launched = await launchUrl(
+                                      googleMapsUri,
+                                      mode: LaunchMode.externalApplication,
+                                    );
+
+                                    if (!launched) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Gagal membuka Google Maps'),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Align(
+                                    alignment: Alignment.bottomRight,
+                                    child: Container(
+                                      margin: const EdgeInsets.all(8),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.8),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.map, color: Colors.green, size: 18),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Buka di Google Maps',
+                                            style: TextStyle(
+                                                fontSize: 12, color: Colors.green),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 24),
