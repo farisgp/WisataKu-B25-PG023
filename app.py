@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify
 import pickle
 import pandas as pd
+from flask_cors import CORS
 
 app = Flask(__name__)
-
+CORS(app)
 # Load cosine similarity matrix
 with open('assets/cosine_similarity_matrix.pkl', 'rb') as f:
     cosine_sim = pickle.load(f)
@@ -40,4 +41,4 @@ def recommend():
     return jsonify({'recommendations': recommended_places})
 
 if __name__ == '__main__':
-    app.run(host='localhost', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
