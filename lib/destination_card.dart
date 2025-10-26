@@ -24,6 +24,7 @@ class DestinationCard extends StatelessWidget {
                 'name': destination.place_name,
                 'location': destination.city,
                 'price': destination.price,
+                'rating': destination.rating,
                 'distance': '',
                 'category': destination.category,
                 'image': imagePath,
