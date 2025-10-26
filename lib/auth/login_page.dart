@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wisataku/main_screen.dart';
 import 'package:wisataku/auth/signup_page.dart';
+import 'package:wisataku/services/auth_services.dart'; // ⬅️ Tambahkan import ini
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -12,7 +13,7 @@ class LoginPage extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView( 
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -45,6 +46,7 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 40),
 
+              // ✉️ Email
               TextField(
                 controller: emailController,
                 decoration: InputDecoration(
@@ -57,6 +59,7 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
+              // 🔒 Password
               TextField(
                 controller: passwordController,
                 obscureText: true,
@@ -79,6 +82,7 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
+              // ✅ Tombol Login (diedit agar pakai AuthService)
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -87,13 +91,34 @@ class LoginPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MainScreen(),
-                    ),
-                  );
+                onPressed: () async {
+                  final email = emailController.text.trim();
+                  final password = passwordController.text.trim();
+
+                  if (email.isEmpty || password.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please fill all fields')),
+                    );
+                    return;
+                  }
+
+                  final success = await AuthService.login(email, password);
+
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Login successful!')),
+                    );
+
+                    // Pindah ke halaman utama setelah login sukses
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MainScreen()),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Invalid email or password')),
+                    );
+                  }
                 },
                 child: const Text(
                   "Login",
@@ -102,6 +127,7 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
+              // Garis pembatas
               Row(
                 children: const [
                   Expanded(child: Divider()),
@@ -114,6 +140,7 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
+              // Tombol login sosial (dummy)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -136,6 +163,7 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
+              // Tombol ke halaman Signup
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

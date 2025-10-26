@@ -91,19 +91,44 @@ class SignUpPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {
-                    final success = AuthService.register(
-                      nameController.text.trim(),
-                      emailController.text.trim(),
-                      passwordController.text.trim(),
-                    );
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    final email = emailController.text.trim();
+                    final password = passwordController.text.trim();
+
+                    // 🧩 Cek apakah ada field kosong
+                    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please fill all fields')),
+                      );
+                      return;
+                    }
+
+                    // 🧩 Cek format email
+                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                    if (!emailRegex.hasMatch(email)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a valid email address')),
+                      );
+                      return;
+                    }
+
+                    // 🧩 Minimal panjang password
+                    if (password.length < 6) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Password must be at least 6 characters')),
+                      );
+                      return;
+                    }
+
+                    // Jika lolos semua, baru register
+                    final success = await AuthService.register(name, email, password);
 
                     if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Registration successful! Please login.')),
+                        const SnackBar(content: Text('Registration successful! Please login.')),
                       );
-                      Navigator.pop(context); 
+                      Navigator.pop(context);
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Email already registered!')),
