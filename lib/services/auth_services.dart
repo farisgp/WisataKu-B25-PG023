@@ -71,19 +71,37 @@ class AuthService {
 
   static Future<bool> updatePassword(String email, String newPassword) async {
     final prefs = await SharedPreferences.getInstance();
-    final usersString = prefs.getString('users');
-    if (usersString == null) return false;
 
-    final List<dynamic> users = jsonDecode(usersString);
-    final index = users.indexWhere((u) => u['email'] == email);
-    if (index == -1) return false;
+    // Ambil daftar user (disimpan sebagai List<String>)
+    List<String> users = prefs.getStringList('users') ?? [];
 
-    // Update password di list dan current user
-    users[index]['password'] = newPassword;
-    await prefs.setString('users', jsonEncode(users));
+    bool updated = false;
 
-    final currentUser = users[index];
+    // Decode tiap user dan cari berdasarkan email
+    List<Map<String, dynamic>> userList = users
+        .map((u) => Map<String, dynamic>.from(jsonDecode(u)))
+        .toList();
+
+    for (var user in userList) {
+      if (user['email'] == email) {
+        user['password'] = newPassword;
+        updated = true;
+        break;
+      }
+    }
+
+    if (!updated) return false;
+
+    // Simpan ulang daftar user ke SharedPreferences
+    List<String> updatedUsers =
+        userList.map((u) => jsonEncode(u)).toList();
+    await prefs.setStringList('users', updatedUsers);
+
+    // Perbarui juga current user
+    final currentUser =
+        userList.firstWhere((u) => u['email'] == email);
     await prefs.setString('currentUser', jsonEncode(currentUser));
+
     return true;
   }
 
