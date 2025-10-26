@@ -1,28 +1,75 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wisataku/data/model/wisataku.dart';
+import 'package:wisataku/destination_card.dart';
 
-class BookmarkScreen extends StatelessWidget {
+class BookmarkScreen extends StatefulWidget {
   const BookmarkScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Map<String, String>> bookmarks = [
-      {
-        "title": "Mount Bromo",
-        "location": "Probolinggo, East Java",
-        "image": "https://source.unsplash.com/600x400/?mountain"
-      },
-      {
-        "title": "Raja Ampat",
-        "location": "West Papua",
-        "image": "https://source.unsplash.com/600x400/?beach,sea"
-      },
-      {
-        "title": "Borobudur Temple",
-        "location": "Magelang, Central Java",
-        "image": "https://source.unsplash.com/600x400/?temple,borobudur"
-      },
-    ];
+  State<BookmarkScreen> createState() => _BookmarkScreenState();
+}
 
+class _BookmarkScreenState extends State<BookmarkScreen> {
+  List<Wisataku> bookmarks = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookmarks();
+  }
+
+  /// Ambil daftar bookmark dari SharedPreferences
+  Future<void> _loadBookmarks() async {
+  final prefs = await SharedPreferences.getInstance();
+  final List<String> saved = prefs.getStringList('bookmarks') ?? [];
+
+  setState(() {
+    bookmarks = saved.map((e) {
+      final data = jsonDecode(e);
+
+      return Wisataku(
+        place_id: data['place_id'] ?? 0, // ✅ tambahkan ini
+        place_name: data['name'] ?? '',
+        city: data['location'] ?? '',
+        price: (data['price'] ?? 0).toDouble(),
+        rating: (data['rating'] ?? 0).toDouble(),
+        category: data['category'] ?? '',
+        description: data['description'] ?? '',
+        coordinate: data['coordinate'] ??
+            "${data['latlng']?['latitude']},${data['latlng']?['longitude']}", // ✅ tambahkan ini
+        lat: (data['latlng'] != null)
+            ? (data['latlng']['latitude'] ?? 0.0)
+            : (data['lat'] ?? 0.0),
+        long: (data['latlng'] != null)
+            ? (data['latlng']['longitude'] ?? 0.0)
+            : (data['long'] ?? 0.0),
+      );
+    }).toList();
+  });
+}
+
+
+  /// Hapus bookmark berdasarkan nama
+  Future<void> _removeBookmark(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> saved = prefs.getStringList('bookmarks') ?? [];
+
+    saved.removeWhere((item) => jsonDecode(item)['name'] == name);
+    await prefs.setStringList('bookmarks', saved);
+
+    setState(() {
+      bookmarks.removeWhere((b) => b.place_name == name);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$name dihapus dari bookmark')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Bookmarks"),
@@ -32,7 +79,7 @@ class BookmarkScreen extends StatelessWidget {
       body: bookmarks.isEmpty
           ? const Center(
               child: Text(
-                "No bookmarks yet",
+                "Belum ada bookmark",
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             )
@@ -41,71 +88,35 @@ class BookmarkScreen extends StatelessWidget {
               itemCount: bookmarks.length,
               itemBuilder: (context, index) {
                 final item = bookmarks[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  elevation: 4,
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          bottomLeft: Radius.circular(16),
-                        ),
-                        child: Image.network(
-                          item["image"]!,
-                          width: 120,
-                          height: 100,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item["title"]!,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on,
-                                      size: 16, color: Colors.red),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      item["location"]!,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                return GestureDetector(
+                  onLongPress: () {
+                    // Konfirmasi hapus
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text("Hapus Bookmark"),
+                        content: Text(
+                            "Apakah kamu yakin ingin menghapus ${item.place_name}?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text("Batal"),
                           ),
-                        ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _removeBookmark(item.place_name);
+                            },
+                            child: const Text("Hapus",
+                                style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("${item["title"]} removed")),
-                          );
-                        },
-                      ),
-                    ],
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: DestinationCard(destination: item),
                   ),
                 );
               },

@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -16,11 +17,58 @@ class DetailPage extends StatefulWidget {
 class _DetailPageState extends State<DetailPage> {
   List<Map<String, dynamic>> recommendedPlaces = [];
   bool loadingRecommendations = true;
+  bool isBookmarked = false; 
+
+  Future<void> _toggleBookmark(Map<String, dynamic> destination) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> saved = prefs.getStringList('bookmarks') ?? [];
+
+    final jsonData = jsonEncode(destination);
+
+    if (isBookmarked) {
+      // Hapus bookmark
+      saved.removeWhere((item) => jsonDecode(item)['name'] == destination['name']);
+    } else {
+      // Tambahkan bookmark
+      saved.add(jsonData);
+    }
+
+    await prefs.setStringList('bookmarks', saved);
+
+    setState(() {
+      isBookmarked = !isBookmarked;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isBookmarked
+            ? 'Ditambahkan ke bookmark'
+            : 'Dihapus dari bookmark'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+  Future<void> _checkIfBookmarked() async {
+  final prefs = await SharedPreferences.getInstance();
+  List<String> saved = prefs.getStringList('bookmarks') ?? [];
+  final currentName = widget.destination['name'];
+
+  final isSaved = saved.any((item) {
+    final decoded = jsonDecode(item);
+    return decoded['name'] == currentName;
+  });
+
+  setState(() {
+    isBookmarked = isSaved;
+  });
+}
+
 
   @override
   void initState() {
     super.initState();
     _loadRecommendations();
+    _checkIfBookmarked();
   }
 
   @override
@@ -31,7 +79,6 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
-
   Future<void> _loadRecommendations() async {
     setState(() {
       loadingRecommendations = true;
@@ -39,13 +86,15 @@ class _DetailPageState extends State<DetailPage> {
     });
     final destinationName = widget.destination['name'];
     try {
-      final url = Uri.parse('http://192.168.1.7:5000/recommend?name=$destinationName'); // ubah sesuai IP server Flask-mu
+      final url = Uri.parse(
+          'http://192.168.1.7:5000/recommend?name=$destinationName'); // ubah sesuai IP server Flask-mu
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          recommendedPlaces = List<Map<String, dynamic>>.from(data['recommendations']);
+          recommendedPlaces =
+              List<Map<String, dynamic>>.from(data['recommendations']);
           loadingRecommendations = false;
         });
       } else {
@@ -62,14 +111,17 @@ class _DetailPageState extends State<DetailPage> {
   Widget build(BuildContext context) {
     final destination = widget.destination;
     final String name = destination["name"] ?? "Unknown";
-    final String description = destination["description"] ?? "No description available.";
+    final String description =
+        destination["description"] ?? "No description available.";
     final String category = destination["category"] ?? "General";
     final String location = destination["location"] ?? "Unknown City";
     final double price = destination["price"]?.toDouble() ?? 0.0;
     final double rating = destination["rating"]?.toDouble() ?? 0.0;
-    final LatLng mapLocation = destination['latlng'] ?? _getDefaultLatLng(name);
-    final String image =
-        destination["image"] ?? "https://source.unsplash.com/400x300/?$category";
+    final LatLng mapLocation =
+        destination['latlng'] ?? _getDefaultLatLng(name);
+    final String image = destination["category"].isNotEmpty
+        ? "https://source.unsplash.com/400x300/?${destination["category"]}"
+        : "https://source.unsplash.com/400x300/?travel";
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -82,20 +134,62 @@ class _DetailPageState extends State<DetailPage> {
               height: MediaQuery.of(context).size.height * 0.45,
               width: double.infinity,
               fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  height: MediaQuery.of(context).size.height * 0.45,
+                  width: double.infinity,
+                  color: Colors.grey.shade200,
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Colors.green),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: MediaQuery.of(context).size.height * 0.45,
+                  width: double.infinity,
+                  color: Colors.grey.shade200,
+                  child: const Icon(
+                    Icons.broken_image,
+                    size: 100,
+                    color: Colors.grey,
+                  ),
+                );
+              },
             ),
           ),
+
+          // ✅ Tambahkan bar atas dengan tombol back & bookmark
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: CircleAvatar(
-                backgroundColor: Colors.black.withOpacity(0.4),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.black.withOpacity(0.4),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                  CircleAvatar(
+                    backgroundColor: Colors.black.withOpacity(0.4),
+                    child: IconButton(
+                      icon: Icon(
+                        isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                        color: isBookmarked ? Colors.yellow : Colors.white,
+                      ),
+                      onPressed: () => _toggleBookmark(widget.destination),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+
+          // ✅ Sisanya tetap sama
           DraggableScrollableSheet(
             initialChildSize: 0.55,
             minChildSize: 0.55,
@@ -209,49 +303,47 @@ class _DetailPageState extends State<DetailPage> {
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
-
-                      // === Bagian rekomendasi ===
-                    if (loadingRecommendations)
-                      const Center(child: CircularProgressIndicator())
-                    else if (recommendedPlaces.isEmpty)
-                      const Text("Tidak ada rekomendasi ditemukan.")
-                    else
-                      SizedBox(
-                        height: 220,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: recommendedPlaces.length,
-                          itemBuilder: (context, index) {
-                            final place = recommendedPlaces[index];
-                            return RecommendationCard(
-                              place: place,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => DetailPage(
-                                      key: ValueKey(place['name']),
-                                      destination: {
-                                        'name': place['name'],
-                                        'location': place['city'],
-                                        'price': place['price'],
-                                        'rating': place['rating'],
-                                        'category': place['category'],
-                                        'description': place['description'],
-                                        'latlng': LatLng(place['lat'], place['long']),
-                                        'image': place['category'] != null
-                                            ? "https://source.unsplash.com/200x150/?${place['category']}"
-                                            : "https://source.unsplash.com/200x150/?travel",
-                                      },
+                      if (loadingRecommendations)
+                        const Center(child: CircularProgressIndicator())
+                      else if (recommendedPlaces.isEmpty)
+                        const Text("Tidak ada rekomendasi ditemukan.")
+                      else
+                        SizedBox(
+                          height: 220,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: recommendedPlaces.length,
+                            itemBuilder: (context, index) {
+                              final place = recommendedPlaces[index];
+                              return RecommendationCard(
+                                place: place,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DetailPage(
+                                        key: ValueKey(place['name']),
+                                        destination: {
+                                          'name': place['name'],
+                                          'location': place['city'],
+                                          'price': place['price'],
+                                          'rating': place['rating'],
+                                          'category': place['category'],
+                                          'description': place['description'],
+                                          'latlng': LatLng(
+                                              place['lat'], place['long']),
+                                          'image': place['category'] != null
+                                              ? "https://source.unsplash.com/400x300/?${place['category']}"
+                                              : "https://source.unsplash.com/400x300/?travel",
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
+                                  );
+                                },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-
                     ],
                   ),
                 ),
