@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:wisataku/recommendation_card.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -13,7 +14,7 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
-  List<String> recommendedNames = [];
+  List<Map<String, dynamic>> recommendedPlaces = [];
   bool loadingRecommendations = true;
 
   @override
@@ -22,16 +23,29 @@ class _DetailPageState extends State<DetailPage> {
     _loadRecommendations();
   }
 
+  @override
+  void didUpdateWidget(covariant DetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.destination['name'] != widget.destination['name']) {
+      _loadRecommendations();
+    }
+  }
+
+
   Future<void> _loadRecommendations() async {
+    setState(() {
+      loadingRecommendations = true;
+      recommendedPlaces = [];
+    });
     final destinationName = widget.destination['name'];
     try {
-      final url = Uri.parse('http://localhost:5000/recommend?name=$destinationName');
+      final url = Uri.parse('http://192.168.1.7:5000/recommend?name=$destinationName'); // ubah sesuai IP server Flask-mu
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          recommendedNames = List<String>.from(data['recommendations']);
+          recommendedPlaces = List<Map<String, dynamic>>.from(data['recommendations']);
           loadingRecommendations = false;
         });
       } else {
@@ -196,24 +210,48 @@ class _DetailPageState extends State<DetailPage> {
                               fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
 
-                      // === Bagian rekomendasi dari Flask ===
-                      if (loadingRecommendations)
-                        const Center(child: CircularProgressIndicator())
-                      else if (recommendedNames.isEmpty)
-                        const Text("Tidak ada rekomendasi ditemukan.")
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: recommendedNames
-                              .map(
-                                (name) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 6),
-                                  child: Text("• $name",
-                                      style: const TextStyle(fontSize: 16)),
-                                ),
-                              )
-                              .toList(),
+                      // === Bagian rekomendasi ===
+                    if (loadingRecommendations)
+                      const Center(child: CircularProgressIndicator())
+                    else if (recommendedPlaces.isEmpty)
+                      const Text("Tidak ada rekomendasi ditemukan.")
+                    else
+                      SizedBox(
+                        height: 220,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: recommendedPlaces.length,
+                          itemBuilder: (context, index) {
+                            final place = recommendedPlaces[index];
+                            return RecommendationCard(
+                              place: place,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => DetailPage(
+                                      key: ValueKey(place['name']),
+                                      destination: {
+                                        'name': place['name'],
+                                        'location': place['city'],
+                                        'price': place['price'],
+                                        'rating': place['rating'],
+                                        'category': place['category'],
+                                        'description': place['description'],
+                                        'latlng': LatLng(place['lat'], place['long']),
+                                        'image': place['category'] != null
+                                            ? "https://source.unsplash.com/200x150/?${place['category']}"
+                                            : "https://source.unsplash.com/200x150/?travel",
+                                      },
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
                         ),
+                      ),
+
                     ],
                   ),
                 ),
