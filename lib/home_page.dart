@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:wisataku/destination_card.dart';
 import 'package:wisataku/data/model/wisataku.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,6 +12,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  String? userName;
+  String? userEmail;
+  bool isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _minPriceController = TextEditingController();
   final TextEditingController _maxPriceController = TextEditingController();
@@ -59,6 +64,29 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userString = prefs.getString('currentUser');
+    if (userString != null) {
+      final userData = jsonDecode(userString);
+      setState(() {
+        userName = userData['name'];
+        userEmail = userData['email'];
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -66,28 +94,36 @@ class _HomePageState extends State<HomePage> {
         automaticallyImplyLeading: false,
         elevation: 0,
         backgroundColor: Colors.white,
-        title: const Row(
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundImage: AssetImage('assets/profile.jpg'),
-            ),
-            SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
               children: [
-                Text(
-                  'Annie January',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                const CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.green,
+                  child: Icon(Icons.person, color: Colors.white, size: 28),
                 ),
-                Text(
-                  'Basic account',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      userName ?? 'Guest User',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    Text(
+                      userEmail ?? 'Not logged in',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),

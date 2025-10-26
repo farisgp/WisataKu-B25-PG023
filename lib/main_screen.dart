@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:wisataku/home_page.dart';
+import 'package:wisataku/profile_page.dart';
 import 'package:wisataku/bookmark_screen.dart';
 import '../provider/main/index_nav_provider.dart';
 
@@ -42,19 +43,7 @@ class _MainScreenState extends State<MainScreen> {
       case 1:
         return const BookmarkScreen();
       case 2:
-        return const Center(
-          child: Text(
-            "History Page",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        );
-      case 3:
-        return const Center(
-          child: Text(
-            "Profile Page",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        );
+        return const ProfilePage();
       default:
         return HomePage();
     }
@@ -120,10 +109,6 @@ class _MainScreenState extends State<MainScreen> {
                       BottomNavigationBarItem(
                         icon: Icon(Icons.bookmarks),
                         label: "Bookmarks",
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.payment),
-                        label: "History",
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.person_outline),
